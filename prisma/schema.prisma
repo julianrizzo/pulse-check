@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmployeeRole {
+  employee
+  manager
+  admin
+}
+
+enum ReviewStatus {
+  draft
+  submitted
+  locked
+}
+
+enum PromotionStatus {
+  open
+  submitted
+  decided
+}
+
+model Employee {
+  id           String       @id @default(cuid())
+  clerkUserId  String       @unique
+  displayName  String
+  email        String
+  role         EmployeeRole @default(employee)
+
+  managerId String?
+  manager   Employee? @relation("ManagedEmployees", fields: [managerId], references: [id], map: "Employee_ManagedEmployees_fkey")
+  managedEmployees Employee[] @relation("ManagedEmployees")
+
+  peerReviewsAsReviewer PeerReview[] @relation("PeerReviewsAsReviewer")
+  peerReviewsAsReviewee PeerReview[] @relation("PeerReviewsAsReviewee")
+
+  yearInReview YearInReview[]
+  promotionCases PromotionCase[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReviewCycle {
+  id        String   @id @default(cuid())
+  year      Int
+  quarter   Int
+  isOpen    Boolean  @default(true)
+
+  peerReviews PeerReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([year, quarter])
+  @@index([year, quarter])
+}
+
+model PeerReview {
+  id String @id @default(cuid())
+
+  reviewerId String
+  revieweeId String
+  cycleId    String
+
+  reviewer Employee @relation("PeerReviewsAsReviewer", fields: [reviewerId], references: [id], map: "PeerReview_Reviewer_fkey")
+  reviewee Employee @relation("PeerReviewsAsReviewee", fields: [revieweeId], references: [id], map: "PeerReview_Reviewee_fkey")
+  cycle    ReviewCycle @relation(fields: [cycleId], references: [id])
+
+  servingClientRating  Int?
+  servingClientComment String?
+
+  investingFutureRating  Int?
+  investingFutureComment String?
+
+  status ReviewStatus @default(draft)
+  submittedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([reviewerId, revieweeId, cycleId])
+  @@index([revieweeId, cycleId])
+}
+
+model YearInReview {
+  id String @id @default(cuid())
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  year Int
+
+  summaryNarrative String?
+  overallStrengths String?
+  growthAreas String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, year])
+  @@index([year])
+}
+
+model PromotionCase {
+  id String @id @default(cuid())
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  year Int
+
+  targetRole EmployeeRole
+  justification String?
+  managerDecision String?
+  status PromotionStatus @default(open)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, year])
+  @@index([year])
+}
+
