@@ -6,10 +6,10 @@ A Next.js app for **peer performance reviews**: quarterly ratings (“Serving Cl
 
 - **Dashboard**: Current quarter status—reviews you owe peers and ratings peers submitted about you
 - **Peer reviews**: Pick peer and cycle; rate both dimensions; save draft or submit
-- **Performance snapshots** (managers/admins): Quarterly trend charts from submitted ratings
+- **Performance snapshots** (Manager and above): Quarterly trend charts from submitted ratings
 - **Year in review**: Annual roll-up of quarterly ratings plus optional manager narrative
-- **Promotion cases**: Create/update cases per employee and year (managers/admins edit; others read-only)
-- **Roles**: `employee`, `manager`, `admin` (first synced user defaults to `admin` unless Clerk `publicMetadata.role` is set)
+- **Promotion cases**: Create/update cases per employee and year (Manager and above can edit; others read-only)
+- **Roles**: `Graduate` through `Partner` in Clerk `publicMetadata.role` (stored on `Employee.role`; new users default to `Consultant` if unset)
 
 ## Tech stack
 

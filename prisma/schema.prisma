@@ -8,9 +8,14 @@ datasource db {
 }
 
 enum EmployeeRole {
-  employee
-  manager
-  admin
+  Graduate
+  Consultant
+  SeniorConsultant
+  Manager
+  SeniorManager
+  Director
+  ManagingDirector
+  Partner
 }
 
 enum ReviewStatus {
@@ -30,7 +35,7 @@ model Employee {
   clerkUserId  String       @unique
   displayName  String
   email        String
-  role         EmployeeRole @default(employee)
+  role         EmployeeRole @default(Consultant)
 
   managerId String?
   manager   Employee? @relation("ManagedEmployees", fields: [managerId], references: [id], map: "Employee_ManagedEmployees_fkey")

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateCurrentCycle } from "@/lib/reviewCycles";
 import { getOrCreateEmployee } from "@/lib/employee";
+import { getPeersFromClerkDirectory } from "@/lib/peerDirectory";
 
 function statusLabel(status: string) {
   switch (status) {
@@ -20,11 +21,7 @@ export default async function DashboardPage() {
   const employee = await getOrCreateEmployee();
   const cycle = await getOrCreateCurrentCycle();
 
-  const peers = await prisma.employee.findMany({
-    where: { id: { not: employee.id } },
-    orderBy: { displayName: "asc" },
-    select: { id: true, displayName: true, role: true },
-  });
+  const peers = await getPeersFromClerkDirectory(employee);
 
   const myReviews = await prisma.peerReview.findMany({
     where: { reviewerId: employee.id, cycleId: cycle.id },

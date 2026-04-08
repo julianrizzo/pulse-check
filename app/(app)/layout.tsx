@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
-import { getOrCreateEmployee } from "@/lib/employee";
+import { getOrCreateEmployee, resolveRoleFromClerkMetadata } from "@/lib/employee";
+import { levelRoleLabel } from "@/lib/roles";
+import { isCurrentUserAdmin } from "@/lib/admin";
+
+export const dynamic = "force-dynamic";
 
 export default async function AppLayout({
   children,
@@ -8,6 +12,8 @@ export default async function AppLayout({
   children: React.ReactNode;
 }>) {
   const employee = await getOrCreateEmployee();
+  const levelRole = await resolveRoleFromClerkMetadata(employee.role);
+  const isAdmin = await isCurrentUserAdmin();
 
   return (
     <div className="min-h-full flex flex-col bg-zinc-50 dark:bg-black">
@@ -22,7 +28,7 @@ export default async function AppLayout({
                 Pulse Check
               </div>
               <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                {employee.displayName} · {employee.role}
+                {employee.displayName} · {levelRoleLabel(levelRole)}
               </div>
             </div>
           </div>
@@ -33,6 +39,7 @@ export default async function AppLayout({
             <NavLink href="/snapshots" label="Snapshots" />
             <NavLink href="/year-in-review" label="Year in Review" />
             <NavLink href="/promotion-cases" label="Promotion Cases" />
+            {isAdmin ? <NavLink href="/admin" label="Admin Console" /> : null}
           </nav>
 
           <div className="flex items-center gap-3">

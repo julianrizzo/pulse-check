@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateEmployee } from "@/lib/employee";
+import {
+  getOrCreateEmployee,
+  isManagerOrAboveInSession,
+  resolveRoleFromClerkMetadata,
+} from "@/lib/employee";
+import { canReviewPeer, coerceLevelRole } from "@/lib/roles";
+import { clerkClient } from "@clerk/nextjs/server";
 
 const BodySchema = z.object({
   revieweeId: z.string().min(1),
@@ -17,6 +23,7 @@ export async function POST(req: Request) {
   try {
     const body = BodySchema.parse(await req.json());
     const employee = await getOrCreateEmployee();
+    const reviewerLevel = await resolveRoleFromClerkMetadata(employee.role);
 
     const cycle = await prisma.reviewCycle.findUnique({
       where: { id: body.cycleId },
@@ -30,8 +37,7 @@ export async function POST(req: Request) {
     }
 
     if (body.status === "submitted" && !cycle.isOpen) {
-      const isPrivileged =
-        employee.role === "manager" || employee.role === "admin";
+      const isPrivileged = await isManagerOrAboveInSession(employee.role);
       if (!isPrivileged) {
         return NextResponse.json(
           { error: "This cycle is closed" },
@@ -50,6 +56,25 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
+    }
+
+    const revieweeEmployee = await prisma.employee.findUnique({
+      where: { id: body.revieweeId },
+      select: { id: true, clerkUserId: true, role: true },
+    });
+    if (!revieweeEmployee) {
+      return NextResponse.json({ error: "Peer not found" }, { status: 404 });
+    }
+
+    const clerk = await clerkClient();
+    const revieweeClerkUser = await clerk.users.getUser(revieweeEmployee.clerkUserId);
+    const revieweeLevel =
+      coerceLevelRole(revieweeClerkUser.publicMetadata?.role) ?? revieweeEmployee.role;
+    if (!canReviewPeer(reviewerLevel, revieweeLevel)) {
+      return NextResponse.json(
+        { error: "You can only review peers at levels below your own." },
+        { status: 403 }
+      );
     }
 
     const upserted = await prisma.peerReview.upsert({

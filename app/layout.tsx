@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "Feedback and performance reviews for your team",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,6 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider
+      dynamic
       // Clerk requires this env var at runtime. It is provided by your Clerk dashboard.
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? ""}
     >

@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateEmployee } from "@/lib/employee";
+import { getOrCreateEmployee, isManagerOrAboveInSession } from "@/lib/employee";
 
 const BodySchema = z.object({
   employeeId: z.string().min(1),
   year: z.number().int().min(1900).max(2100),
-  targetRole: z.enum(["employee", "manager", "admin"]),
+  targetRole: z.enum([
+    "Graduate",
+    "Consultant",
+    "SeniorConsultant",
+    "Manager",
+    "SeniorManager",
+    "Director",
+    "ManagingDirector",
+    "Partner",
+  ]),
   justification: z.string().max(4000).optional().nullable(),
   managerDecision: z.string().max(4000).optional().nullable(),
   status: z.enum(["open", "submitted", "decided"]),
@@ -17,10 +26,10 @@ export async function POST(req: Request) {
     const body = BodySchema.parse(await req.json());
     const employee = await getOrCreateEmployee();
 
-    const canEdit = employee.role === "manager" || employee.role === "admin";
+    const canEdit = await isManagerOrAboveInSession(employee.role);
     if (!canEdit) {
       return NextResponse.json(
-        { error: "Only managers/admins can edit promotion cases" },
+        { error: "Only Manager-level users and above can edit promotion cases" },
         { status: 403 }
       );
     }

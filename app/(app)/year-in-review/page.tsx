@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getOrCreateEmployee } from "@/lib/employee";
+import { getOrCreateEmployee, isManagerOrAboveInSession } from "@/lib/employee";
 import {
   ensureReviewCyclesForYear,
   getCurrentYearQuarter,
@@ -17,7 +17,7 @@ export default async function YearInReviewPage({
 }) {
   const employee = await getOrCreateEmployee();
 
-  const canViewAll = employee.role === "manager" || employee.role === "admin";
+  const canViewAll = await isManagerOrAboveInSession(employee.role);
   const { year: currentYear } = getCurrentYearQuarter();
 
   const allEmployees = canViewAll
@@ -128,7 +128,7 @@ export default async function YearInReviewPage({
         },
       });
 
-  const canEdit = employee.role === "manager" || employee.role === "admin";
+  const canEdit = canViewAll;
 
   return (
     <div className="flex flex-col gap-6">

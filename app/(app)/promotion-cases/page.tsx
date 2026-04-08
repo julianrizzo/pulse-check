@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getOrCreateEmployee } from "@/lib/employee";
+import { getOrCreateEmployee, isManagerOrAboveInSession } from "@/lib/employee";
 import { getCurrentYearQuarter } from "@/lib/reviewCycles";
 import PromotionCaseEditor from "./PromotionCaseEditor";
 
@@ -9,7 +9,7 @@ export default async function PromotionCasesPage({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const employee = await getOrCreateEmployee();
-  const canEditAll = employee.role === "manager" || employee.role === "admin";
+  const canEditAll = await isManagerOrAboveInSession(employee.role);
   const { year: currentYear } = getCurrentYearQuarter();
 
   const employees = canEditAll

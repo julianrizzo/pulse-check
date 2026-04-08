@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateEmployee } from "@/lib/employee";
+import { getOrCreateEmployee, isManagerOrAboveInSession } from "@/lib/employee";
 
 const BodySchema = z.object({
   employeeId: z.string().min(1),
@@ -16,10 +16,10 @@ export async function POST(req: Request) {
     const body = BodySchema.parse(await req.json());
     const employee = await getOrCreateEmployee();
 
-    const canEdit = employee.role === "manager" || employee.role === "admin";
+    const canEdit = await isManagerOrAboveInSession(employee.role);
     if (!canEdit) {
       return NextResponse.json(
-        { error: "Only managers/admins can edit year-in-review narratives" },
+        { error: "Only Manager-level users and above can edit year-in-review narratives" },
         { status: 403 }
       );
     }

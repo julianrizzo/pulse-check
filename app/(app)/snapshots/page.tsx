@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getOrCreateEmployee } from "@/lib/employee";
+import { getOrCreateEmployee, isManagerOrAboveInSession } from "@/lib/employee";
 
 type Point = {
   label: string;
@@ -134,7 +134,7 @@ export default async function SnapshotsPage({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const employee = await getOrCreateEmployee();
-  const canView = employee.role === "manager" || employee.role === "admin";
+  const canView = await isManagerOrAboveInSession(employee.role);
 
   if (!canView) {
     return (

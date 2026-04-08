@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { ensureReviewCyclesForYear, getCurrentYearQuarter } from "@/lib/reviewCycles";
-import { getOrCreateEmployee } from "@/lib/employee";
+import { getOrCreateEmployee, isManagerOrAboveInSession } from "@/lib/employee";
 import PeerRatingClient from "./PeerRatingClient";
+import { getPeersFromClerkDirectory } from "@/lib/peerDirectory";
 
 export default async function ReviewsPage({
   searchParams,
@@ -9,18 +10,18 @@ export default async function ReviewsPage({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const employee = await getOrCreateEmployee();
+  const canSubmitClosedCycles = await isManagerOrAboveInSession(employee.role);
 
   const { year } = getCurrentYearQuarter();
-  const cycles = await ensureReviewCyclesForYear(year);
+  await ensureReviewCyclesForYear(year);
+  const cycles = await prisma.reviewCycle.findMany({
+    orderBy: [{ year: "desc" }, { quarter: "desc" }],
+  });
   const currentCycle = getCurrentYearQuarter().quarter;
   const currentCycleId =
     cycles.find((c) => c.quarter === currentCycle)?.id ?? cycles[0]?.id;
 
-  const peers = await prisma.employee.findMany({
-    where: { id: { not: employee.id } },
-    orderBy: { displayName: "asc" },
-    select: { id: true, displayName: true },
-  });
+  const peers = await getPeersFromClerkDirectory(employee);
 
   const peerIdRaw = searchParams.peerId;
   const peerId =
@@ -73,7 +74,7 @@ export default async function ReviewsPage({
 
   return (
     <PeerRatingClient
-      employeeRole={employee.role}
+      canSubmitClosedCycles={canSubmitClosedCycles}
       peers={peers}
       cycles={cycles.map((c) => ({
         id: c.id,

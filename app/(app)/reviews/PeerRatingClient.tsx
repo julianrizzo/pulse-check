@@ -25,14 +25,14 @@ type ReviewDto = {
 };
 
 export default function PeerRatingClient({
-  employeeRole,
+  canSubmitClosedCycles,
   peers,
   cycles,
   reviewMap,
   initialPeerId,
   initialCycleId,
 }: {
-  employeeRole: "employee" | "manager" | "admin";
+  canSubmitClosedCycles: boolean;
   peers: PeerDto[];
   cycles: CycleDto[];
   reviewMap: Record<string, ReviewDto>;
@@ -65,8 +65,7 @@ export default function PeerRatingClient({
   );
   const [status, setStatus] = useState<ReviewStatus>(existing?.status ?? "draft");
 
-  const isPrivileged =
-    employeeRole === "manager" || employeeRole === "admin";
+  const isPrivileged = canSubmitClosedCycles;
 
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -99,6 +98,10 @@ export default function PeerRatingClient({
     setFormError(null);
 
     if (nextStatus === "submitted") {
+      if (!peerId) {
+        setFormError("No eligible peers available for your current level.");
+        return;
+      }
       if (servingClientRating == null || investingFutureRating == null) {
         setFormError("Please provide both ratings before submitting.");
         return;
@@ -172,6 +175,7 @@ export default function PeerRatingClient({
             <select
               value={peerId}
               onChange={(e) => onChangePeer(e.target.value)}
+              disabled={peers.length === 0}
               className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-black px-3 py-2 text-sm"
             >
               {peers.map((p) => (
@@ -208,8 +212,14 @@ export default function PeerRatingClient({
 
         {!selectedCycle?.isOpen && !isPrivileged ? (
           <div className="mt-3 text-xs text-amber-700 dark:text-amber-300">
-            This cycle is closed. You can save drafts, but only managers/admins
-            can submit.
+            This cycle is closed. You can save drafts, but only Manager-level
+            users and above can submit.
+          </div>
+        ) : null}
+        {peers.length === 0 ? (
+          <div className="mt-3 text-xs text-zinc-600 dark:text-zinc-400">
+            No eligible peers yet. You can only review users at levels below
+            your own.
           </div>
         ) : null}
       </div>

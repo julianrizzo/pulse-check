@@ -1,17 +1,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import type { EmployeeRole } from "@prisma/client";
+import { coerceLevelRole, isManagerOrAbove } from "@/lib/roles";
 
 function normalizeEmail(email: string | null | undefined) {
   return (email ?? "").trim().toLowerCase();
-}
-
-function coerceEmployeeRole(input: unknown): EmployeeRole | null {
-  if (typeof input !== "string") return null;
-  if (input === "employee" || input === "manager" || input === "admin") {
-    return input;
-  }
-  return null;
 }
 
 export async function getOrCreateEmployee() {
@@ -30,12 +23,7 @@ export async function getOrCreateEmployee() {
   const displayName =
     user.fullName ?? user.firstName ?? user.lastName ?? email ?? "Employee";
 
-  // First user becomes admin by default.
-  const employeeCount = await prisma.employee.count();
-  const fallbackRole: EmployeeRole = employeeCount === 0 ? "admin" : "employee";
-
-  const preferredRole = coerceEmployeeRole(user.publicMetadata?.role);
-  const role = preferredRole ?? fallbackRole;
+  const role = coerceLevelRole(user.publicMetadata?.role) ?? "Consultant";
 
   return prisma.employee.create({
     data: {
@@ -48,14 +36,17 @@ export async function getOrCreateEmployee() {
   });
 }
 
-export async function requireEmployeeRole(allowed: EmployeeRole[]) {
-  const employee = await getOrCreateEmployee();
-  if (!allowed.includes(employee.role)) {
-    // Let Next handle this as a 500 unless we map it later to 403; keeping it simple for now.
-    throw new Error(
-      `Forbidden: requires ${allowed.join(", ")} but was ${employee.role}`
-    );
-  }
-  return employee;
+/**
+ * Prefer Clerk `publicMetadata.role`, fall back to the role stored on `Employee`.
+ */
+export async function resolveRoleFromClerkMetadata(
+  storedRole: EmployeeRole
+): Promise<EmployeeRole> {
+  const user = await currentUser();
+  return coerceLevelRole(user?.publicMetadata?.role) ?? storedRole;
 }
 
+export async function isManagerOrAboveInSession(storedRole: EmployeeRole) {
+  const role = await resolveRoleFromClerkMetadata(storedRole);
+  return isManagerOrAbove(role);
+}

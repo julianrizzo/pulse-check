@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 
-type TargetRole = "employee" | "manager" | "admin";
+type TargetRole =
+  | "Graduate"
+  | "Consultant"
+  | "SeniorConsultant"
+  | "Manager"
+  | "SeniorManager"
+  | "Director"
+  | "ManagingDirector"
+  | "Partner";
 type PromotionStatus = "open" | "submitted" | "decided";
 
 export default function PromotionCaseEditor({
@@ -22,7 +30,7 @@ export default function PromotionCaseEditor({
   };
 }) {
   const [targetRole, setTargetRole] = useState<TargetRole>(
-    initial.targetRole ?? "manager"
+    initial.targetRole ?? "Manager"
   );
   const [justification, setJustification] = useState(initial.justification ?? "");
   const [managerDecision, setManagerDecision] = useState(
@@ -113,9 +121,14 @@ export default function PromotionCaseEditor({
             onChange={(e) => setTargetRole(e.target.value as TargetRole)}
             className="mt-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-black px-3 py-2 text-sm w-full"
           >
-            <option value="employee">Employee</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
+            <option value="Graduate">Graduate</option>
+            <option value="Consultant">Consultant</option>
+            <option value="SeniorConsultant">Senior Consultant</option>
+            <option value="Manager">Manager</option>
+            <option value="SeniorManager">Senior Manager</option>
+            <option value="Director">Director</option>
+            <option value="ManagingDirector">Managing Director</option>
+            <option value="Partner">Partner</option>
           </select>
         </div>
 
